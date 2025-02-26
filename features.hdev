@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="19.11.0.0">
+<procedure name="main">
+<interface/>
+<body>
+<c>* 主程序示例</c>
+<l>dev_close_window ()</l>
+<l>read_image (Image, '1.bmp')  // 替换为你的图像路径</l>
+<l>get_image_size (Image, Width, Height)</l>
+<l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
+<l>dev_display (Image)</l>
+<c></c>
+<c>* 调用特征检测模块</c>
+<l>detect_image_features (Image, Edges, Corners, ['edge','corner'], 40, 20, 0.8, 3, 0.04, 0.5)</l>
+<l>detect_corners_enhanced (Image, CornersXLD, 0.4, 7, 0.8, 7)</l>
+<c>* 可视化结果</c>
+<l>dev_set_color ('green')</l>
+<l>dev_set_line_width (2)</l>
+<l>dev_display (Edges)</l>
+<c></c>
+<l>dev_set_color ('red')</l>
+<l>dev_set_draw ('margin')</l>
+<l>dev_display (Corners)</l>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="detect_image_features">
+<interface>
+<io>
+<par name="InputImage" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="OutEdges" base_type="iconic" dimension="0"/>
+<par name="OutCorners" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="FeaturesToDetect" base_type="ctrl" dimension="0"/>
+<par name="EdgeHighThreshold" base_type="ctrl" dimension="0"/>
+<par name="EdgeLowThreshold" base_type="ctrl" dimension="0"/>
+<par name="EdgeSigma" base_type="ctrl" dimension="0"/>
+<par name="CornerRadius" base_type="ctrl" dimension="0"/>
+<par name="CornerFilterSize" base_type="ctrl" dimension="0"/>
+<par name="CornerThreshold" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* 预处理</c>
+<l>rgb1_to_gray (InputImage, GrayImage)</l>
+<l>mean_image (GrayImage, PreprocessedImage, 3, 3)</l>
+<c></c>
+<c>* 特征检测列表处理</c>
+<l>tuple_find (FeaturesToDetect, 'edge', EdgeIndex)</l>
+<l>tuple_find (FeaturesToDetect, 'corner', CornerIndex)</l>
+<c></c>
+<c>* 边缘检测</c>
+<l>if (EdgeIndex != -1)</l>
+<l>    sobel_amp (PreprocessedImage, EdgeAmplitude, 'sum_abs', 3)</l>
+<l>    edges_sub_pix (EdgeAmplitude, OutEdges, 'canny', EdgeSigma, EdgeLowThreshold, EdgeHighThreshold)</l>
+<l>else</l>
+<l>    gen_empty_obj (OutEdges)</l>
+<l>endif</l>
+<c></c>
+<c>* 角点检测</c>
+<l>if (CornerIndex != -1)</l>
+<c>    * Harris角点检测法</c>
+<l>    corner_response (PreprocessedImage, CornerResponse, 3, CornerFilterSize)</l>
+<c>    </c>
+<c>    * 动态阈值处理</c>
+<l>    min_max_gray (CornerResponse, CornerResponse, 0, Min, Max, Range)</l>
+<l>    dyn_threshold (CornerResponse, CornerResponse, CornersRaw, CornerThreshold, 'light')</l>
+<c>    </c>
+<c>    * 形态学处理优化</c>
+<l>    opening_circle (CornersRaw, CornersOpened, CornerRadius)</l>
+<l>    connection (CornersOpened, ConnectedRegions)</l>
+<l>    select_shape (ConnectedRegions, OutCorners, 'area', 'and', 2, 1000)</l>
+<l>    else</l>
+<l>    gen_empty_obj (OutCorners)</l>
+<l>endif</l>
+<c></c>
+<l>return ()</l>
+</body>
+<docu id="detect_image_features">
+<parameters>
+<parameter id="CornerFilterSize"/>
+<parameter id="CornerRadius"/>
+<parameter id="CornerThreshold"/>
+<parameter id="EdgeHighThreshold"/>
+<parameter id="EdgeLowThreshold"/>
+<parameter id="EdgeSigma"/>
+<parameter id="FeaturesToDetect"/>
+<parameter id="InputImage"/>
+<parameter id="OutCorners"/>
+<parameter id="OutEdges"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="detect_corners_enhanced">
+<interface>
+<io>
+<par name="InputImage" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="OutCorners" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="MinQuality" base_type="ctrl" dimension="0"/>
+<par name="MinDistance" base_type="ctrl" dimension="0"/>
+<par name="Sigma" base_type="ctrl" dimension="0"/>
+<par name="WindowSize" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* 转为灰度并增强对比度</c>
+<l>rgb1_to_gray (InputImage, GrayImage)</l>
+<l>emphasize (GrayImage, EnhancedImage, 7, 7, 1.5)  // 增强边缘对比度</l>
+<c></c>
+<c>* 各向异性扩散滤波（保留边缘同时降噪）</c>
+<l>anisotropic_diffusion (EnhancedImage, FilteredImage, 'parabolic', 5, 10, 5)</l>
+<c></c>
+<c>* Foerstner亚像素角点检测（比Harris更稳定）</c>
+<c></c>
+<c></c>
+<l>points_foerstner (FilteredImage, 1, 2, 3, 200, 0.3, 'gauss', 'false', RowJunctions, ColumnJunctions, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<c>* 高斯滤波降噪</c>
+<l>gauss_filter (EnhancedImage, FilteredImage, SmoothSize)</l>
+<c>* Harris角点检测（兼容旧版参数）</c>
+<l>harris_points (FilteredImage, 3, 0.04, 1,  Row, Column, Response)</l>
+<c>* 动态阈值计算</c>
+<l>min_max_gray (FilteredImage, FilteredImage, 0, Min, Max, Range)</l>
+<l>Threshold := Max * 0.5</l>
+<c>* 区域生成与筛选</c>
+<l>threshold (FilteredImage, Regions, Threshold, 255)</l>
+<l>connection (Regions, ConnectedRegions)</l>
+<l>AreaThreshold:=10000</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, ['area','compactness'],  'and', [AreaThreshold,0.5],   [99999,1.0])</l>
+<c>             </c>
+<c>             * 非极大值抑制（兼容版实现）</c>
+<l>gen_empty_obj (OutCorners)</l>
+<l>count_obj (SelectedRegions, Number)</l>
+<l>for i := 1 to Number by 1</l>
+<l>    select_obj (SelectedRegions, Region, i)</l>
+<l>    area_center (Region, Area, RowRegion, ColumnRegion)</l>
+<c>    </c>
+<c>    * 亚像素级坐标优化（旧版方法）</c>
+<l>    subpix (FilteredImage, CornersSub, RowRegion, ColumnRegion, </l>
+<c>           'foerstner', 0.8, 5)</c>
+<c>    </c>
+<c>    * 距离筛选</c>
+<l>    if (i == 1)</l>
+<l>        concat_obj (OutCorners, CornersSub, OutCorners)</l>
+<l>    else</l>
+<l>        spatial_relation (CornersSub, OutCorners, </l>
+<c>                         'distance', 0, MinDistance, </c>
+<l>                         MinDistance, 'max', </l>
+<l>                         IsOverlap)</l>
+<l>        if (IsOverlap == 0)</l>
+<l>            concat_obj (OutCorners, CornersSub, OutCorners)</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endfor</l>
+<c> * 可视化增强</c>
+<l>dilation_circle (OutCorners, FinalCorners, 1.5)</l>
+<l>union_adjacent_contours_xld (FinalCorners, OutCorners, 5, 1, 'attr_keep')                         </l>
+<c>* 非极大值抑制（NMS）</c>
+<l>get_domain (FilteredImage, Domain)</l>
+<l>gen_rectangle1 (ROI, 0, 0, 512, 512)  // 根据实际图像尺寸调整</l>
+<l>local_max_sub_pix (Domain, 'facet',   MinDistance, 5,  RowNMS, ColumnNMS)</l>
+<c></c>
+<c>* 筛选高质量角点</c>
+<l>select_points_sub_pix (FilteredImage, RowNMS, ColumnNMS, SelectedCorners, 'facet',  MinQuality, 999999, 0.5)</l>
+<c></c>
+<c>* 坐标转换与输出</c>
+<l>gen_cross_contour_xld (OutCorners, RowNMS, ColumnNMS,  6, 0.785398)  // 生成十字标记</l>
+<l>return ()</l>
+</body>
+<docu id="detect_corners_enhanced">
+<parameters>
+<parameter id="InputImage"/>
+<parameter id="MinDistance"/>
+<parameter id="MinQuality"/>
+<parameter id="OutCorners"/>
+<parameter id="Sigma"/>
+<parameter id="WindowSize"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>
