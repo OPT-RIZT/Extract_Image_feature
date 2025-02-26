@@ -5,14 +5,65 @@
 <body>
 <c>* 主程序示例</c>
 <l>dev_close_window ()</l>
-<l>read_image (Image, '1.bmp')  // 替换为你的图像路径</l>
+<l>read_image (Image, '3.bmp')  // 替换为你的图像路径</l>
 <l>get_image_size (Image, Width, Height)</l>
 <l>dev_open_window (0, 0, Width, Height, 'black', WindowHandle)</l>
 <l>dev_display (Image)</l>
 <c></c>
 <c>* 调用特征检测模块</c>
 <l>detect_image_features (Image, Edges, Corners, ['edge','corner'], 40, 20, 0.8, 3, 0.04, 0.5)</l>
-<l>detect_corners_enhanced (Image, CornersXLD, 0.4, 7, 0.8, 7)</l>
+<c>* 假设已通过find_edges或edges_sub_pix获取亚像素边缘轮廓edges_xld</c>
+<c>* 1. 分割轮廓为直线和圆弧候选段</c>
+<l>segment_contours_xld (Edges, segmented_contours, 'lines', 5, 10, 3)</l>
+<c></c>
+<c>* 2. 遍历每个分割段并处理</c>
+<l>count_obj (segmented_contours, num_contours)</l>
+<l>for i := 0 to num_contours - 1 by 1</l>
+<c>    * 提取当前轮廓</c>
+<l>    select_obj (segmented_contours, current_contour, i + 1)</l>
+<c>    * 替代方案：通过拟合圆的误差或手动计算圆度</c>
+<c>    * 1. 拟合圆并计算拟合误差（误差越小圆度越高）</c>
+<l>    fit_circle_contour_xld (current_contour, 'atukey', -1, 0, 0, 3, 2,row, column, radius, start_phi, end_phi, point_order)</l>
+<c>    </c>
+<c>    * 2. 根据误差评估圆度（需根据实际误差范围调整阈值）</c>
+<l>    if (error &lt; 1.5)  </l>
+<c>        * 示例阈值，需实验确定</c>
+<c>        * 判定为高圆度，执行圆绘制</c>
+<l>        gen_circle_contour_xld (...)</l>
+<l>    endif</l>
+<c>    </c>
+<c>    * 或手动计算圆度公式：4π*Area/(Perimeter^2)</c>
+<l>    area_center_xld (current_contour, area, row, col, point_order)</l>
+<l>    length_xld (current_contour, length)</l>
+<l>    circularity := 4 * 3.14159 * area / (length * length)</l>
+<l>    if (circularity &gt;= 0.8)</l>
+<c>        * 执行圆拟合</c>
+<l>    endif</l>
+<c>    </c>
+<c>    </c>
+<c>    * 计算全局圆度属性（Halcon中通常使用'circularity'或'roundness'）</c>
+<l>   * get_contour_global_attrib_xld (current_contour, 'regr_mean_dist', circularity)</l>
+<c>    </c>
+<c>    * 3. 根据圆度拟合几何形状</c>
+<l>    if (circularity &gt;= 0.8)</l>
+<c>        * 拟合圆（参数需根据实际调整）</c>
+<l>        fit_circle_contour_xld (current_contour, 'algebraic', -1, 0, 0, 3, 2, \
+                                row, column, radius, start_phi, end_phi, point_order)</l>
+<c>        * 绘制或存储圆结果</c>
+<l>        gen_circle_contour_xld (circle_contour, radius, column, row, 0, 6.28318, 'positive', 1)</l>
+<l>    else</l>
+<c>        * 拟合直线（使用Tukey稳健回归）</c>
+<l>        fit_line_contour_xld (current_contour, 'tukey', -1, 0, 5, 2, \
+                              row_begin, col_begin, row_end, col_end, nr, nc, dist)</l>
+<c>        * 绘制或存储直线结果</c>
+<l>        gen_contour_polygon_xld (line_contour, [row_begin, row_end], [col_begin, col_end])</l>
+<l>    endif</l>
+<l>endfor</l>
+<c></c>
+<c>* 可选：合并同一直线的分散边缘点</c>
+<c>* 使用get_contour_xld获取所有点坐标，通过RANSAC或Hough变换合并拟合</c>
+<c></c>
+<c></c>
 <c>* 可视化结果</c>
 <l>dev_set_color ('green')</l>
 <l>dev_set_line_width (2)</l>
@@ -21,7 +72,7 @@
 <l>dev_set_color ('red')</l>
 <l>dev_set_draw ('margin')</l>
 <l>dev_display (Corners)</l>
-<c></c>
+<l>detect_corners_enhanced_COPY_1 (Image, CornersXLD, 0.4, 7, 0.8, 7)</l>
 </body>
 <docu id="main">
 <parameters/>
@@ -66,15 +117,15 @@
 <c>* 角点检测</c>
 <l>if (CornerIndex != -1)</l>
 <c>    * Harris角点检测法</c>
-<l>    corner_response (PreprocessedImage, CornerResponse, 3, CornerFilterSize)</l>
+<l>    corner_response (PreprocessedImage, CornerResponse, 5, CornerFilterSize)</l>
 <c>    </c>
 <c>    * 动态阈值处理</c>
 <l>    min_max_gray (CornerResponse, CornerResponse, 0, Min, Max, Range)</l>
-<l>    dyn_threshold (CornerResponse, CornerResponse, CornersRaw, CornerThreshold, 'light')</l>
+<l>    dyn_threshold (PreprocessedImage, CornerResponse, CornersRaw, CornerThreshold, 'dark')</l>
 <c>    </c>
 <c>    * 形态学处理优化</c>
-<l>    opening_circle (CornersRaw, CornersOpened, CornerRadius)</l>
-<l>    connection (CornersOpened, ConnectedRegions)</l>
+<l>   * opening_circle (CornersRaw, CornersOpened, CornerRadius)</l>
+<l>    connection (CornersRaw, ConnectedRegions)</l>
 <l>    select_shape (ConnectedRegions, OutCorners, 'area', 'and', 2, 1000)</l>
 <l>    else</l>
 <l>    gen_empty_obj (OutCorners)</l>
@@ -177,6 +228,92 @@
 <l>return ()</l>
 </body>
 <docu id="detect_corners_enhanced">
+<parameters>
+<parameter id="InputImage"/>
+<parameter id="MinDistance"/>
+<parameter id="MinQuality"/>
+<parameter id="OutCorners"/>
+<parameter id="Sigma"/>
+<parameter id="WindowSize"/>
+</parameters>
+</docu>
+</procedure>
+<procedure name="detect_corners_enhanced_COPY_1">
+<interface>
+<io>
+<par name="InputImage" base_type="iconic" dimension="0"/>
+</io>
+<oo>
+<par name="OutCorners" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="MinQuality" base_type="ctrl" dimension="0"/>
+<par name="MinDistance" base_type="ctrl" dimension="0"/>
+<par name="Sigma" base_type="ctrl" dimension="0"/>
+<par name="WindowSize" base_type="ctrl" dimension="0"/>
+</ic>
+</interface>
+<body>
+<c>* 转为灰度并增强对比度</c>
+<l>rgb1_to_gray (InputImage, GrayImage)</l>
+<l>emphasize (GrayImage, EnhancedImage, 7, 7, 1.5)</l>
+<c></c>
+<c>* 各向异性扩散滤波（保留边缘同时降噪）</c>
+<l>anisotropic_diffusion (EnhancedImage, FilteredImage, 'parabolic', 5, 10, 5)</l>
+<c></c>
+<c>* Foerstner亚像素角点检测（比Harris更稳定）</c>
+<c></c>
+<c></c>
+<l>points_foerstner (FilteredImage, 1, 2, 3, 200, 0.3, 'gauss', 'false', RowJunctions, ColumnJunctions, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
+<c>* 高斯滤波降噪</c>
+<l>gauss_filter (EnhancedImage, FilteredImage, 5)</l>
+<c>* Harris角点检测（兼容旧版参数）</c>
+<l>harris_points ()</l>
+<c>* 动态阈值计算</c>
+<l>min_max_gray (FilteredImage, FilteredImage, 0, Min, Max, Range)</l>
+<l>Threshold := Max * 0.5</l>
+<c>* 区域生成与筛选</c>
+<l>threshold (FilteredImage, Regions, Threshold, 255)</l>
+<l>connection (Regions, ConnectedRegions)</l>
+<l>AreaThreshold := 10000</l>
+<l>select_shape (ConnectedRegions, SelectedRegions, ['area','compactness'], 'and', [AreaThreshold,0.5], [99999,1.0])</l>
+<c></c>
+<c>* 非极大值抑制（兼容版实现）</c>
+<l>gen_empty_obj (OutCorners)</l>
+<l>count_obj (SelectedRegions, Number)</l>
+<l>for i := 1 to Number by 1</l>
+<l>    select_obj (SelectedRegions, Region, i)</l>
+<l>    area_center (Region, Area, RowRegion, ColumnRegion)</l>
+<c></c>
+<c>    * 亚像素级坐标优化（旧版方法）</c>
+<l>    edges_sub_pix (FilteredImage, CornersSub, RowRegion, ColumnRegion,'foerstner', 0.8, 5)</l>
+<c></c>
+<c>    * 距离筛选</c>
+<l>    if (i == 1)</l>
+<l>        concat_obj (OutCorners, CornersSub, OutCorners)</l>
+<l>    else</l>
+<l>        spatial_relation (CornersSub, OutCorners, 'distance', 0, MinDistance,MinDistance, 'max',  IsOverlap)</l>
+<l>        if (IsOverlap == 0)</l>
+<l>            concat_obj (OutCorners, CornersSub, OutCorners)</l>
+<l>        endif</l>
+<l>    endif</l>
+<l>endfor</l>
+<c>* 可视化增强</c>
+<l>dilation_circle (OutCorners, FinalCorners, 1.5)</l>
+<l>union_adjacent_contours_xld (FinalCorners, OutCorners, 5, 1, 'attr_keep')</l>
+<c>* 非极大值抑制（NMS）</c>
+<l>get_domain (FilteredImage, Domain)</l>
+<l>gen_rectangle1 (ROI, 0, 0, 512, 512)</l>
+<l>local_max_sub_pix (Domain, 'facet', MinDistance, 5, RowNMS, ColumnNMS)</l>
+<c></c>
+<c>* 筛选高质量角点</c>
+<l>select_points_sub_pix ()</l>
+<c></c>
+<c>* 坐标转换与输出</c>
+<l>gen_cross_contour_xld (OutCorners, RowNMS, ColumnNMS, 6, 0.785398)</l>
+<l>return ()</l>
+</body>
+<docu id="detect_corners_enhanced_COPY_1">
 <parameters>
 <parameter id="InputImage"/>
 <parameter id="MinDistance"/>
