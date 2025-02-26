@@ -125,7 +125,7 @@
 <c></c>
 <l>points_foerstner (FilteredImage, 1, 2, 3, 200, 0.3, 'gauss', 'false', RowJunctions, ColumnJunctions, CoRRJunctions, CoRCJunctions, CoCCJunctions, RowArea, ColumnArea, CoRRArea, CoRCArea, CoCCArea)</l>
 <c>* 高斯滤波降噪</c>
-<l>gauss_filter (EnhancedImage, FilteredImage, SmoothSize)</l>
+<l>gauss_filter (EnhancedImage, FilteredImage, 5)</l>
 <c>* Harris角点检测（兼容旧版参数）</c>
 <l>harris_points (FilteredImage, 3, 0.04, 1,  Row, Column, Response)</l>
 <c>* 动态阈值计算</c>
