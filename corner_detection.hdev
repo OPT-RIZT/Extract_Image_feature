@@ -15,18 +15,26 @@
 <l as_id="matching" as_name="Matching 01" as_grp="[0]" as_ord="5">set_system ('border_shape_models', 'false')</l>
 <c as_id="matching" as_name="Matching 01" as_grp="[0]" as_ord="6">* </c>
 <c as_id="matching" as_name="Matching 01" as_grp="[1,1,1]" as_ord="1">* Matching 01: Obtain the model image</c>
-<l as_id="matching" as_name="Matching 01" as_grp="[1,1,1]" as_ord="2">read_image (Image, 'C:/Users/lenovo/Desktop/4个角/2.bmp')</l>
+<l>gen_rectangle1 (ModelRegion, 985.5, 1245.5, 1209.5, 2541.5)</l>
 <c as_id="matching" as_name="Matching 01" as_grp="[1,1,2]" as_ord="1">* </c>
 <c as_id="matching" as_name="Matching 01" as_grp="[1,1,2]" as_ord="2">* Matching 01: Build the ROI from basic regions</c>
-<l as_id="matching" as_name="Matching 01" as_grp="[1,1,2]" as_ord="3">gen_rectangle1 (ModelRegion, 940.267, 1877.13, 1261.38, 2501.52)</l>
+<c></c>
+<l>read_image (Image, '2.bmp')</l>
+<l>gen_rectangle1 (ModelRegion, 940.267, 1877.13, 1261.38, 2501.52)</l>
+<l>read_image (Image, '1.jpg')</l>
+<l>gen_rectangle1 (ModelRegion, 940.267, 1877.13, 1261.38, 2501.52)</l>
+<l>gen_rectangle1 (ModelRegion, 981.5, 1261.5, 1201.5, 2529.5)</l>
 <c as_id="matching" as_name="Matching 01" as_grp="[1,1,3]" as_ord="1">* </c>
 <c as_id="matching" as_name="Matching 01" as_grp="[1,1,3]" as_ord="2">* Matching 01: Reduce the model template</c>
 <l as_id="matching" as_name="Matching 01" as_grp="[1,1,3]" as_ord="3">reduce_domain (Image, ModelRegion, TemplateImage)</l>
 <c as_id="matching" as_name="Matching 01" as_grp="[1,1,4]" as_ord="1">* </c>
 <c as_id="matching" as_name="Matching 01" as_grp="[1,1,4]" as_ord="2">* Matching 01: Create the shape model</c>
-<l as_id="matching" as_name="Matching 01" as_grp="[1,1,4]" as_ord="3">create_shape_model (TemplateImage, 7, rad(0), rad(360), rad(0.3443), ['point_reduction_medium','pregeneration'], 'ignore_global_polarity', [39,63,67], 4, ModelID)</l>
+<l as_id="matching" as_name="Matching 01" as_grp="[1,1,4]" as_ord="3">*create_shape_model (TemplateImage, 7, rad(0), rad(360), rad(0.3443), ['point_reduction_medium','pregeneration'], 'ignore_global_polarity', [39,63,67], 4, ModelID)</l>
+<l>*write_shape_model(ModelID,'model.sbm' )</l>
 <c as_id="matching" as_name="Matching 01" as_grp="[1,2]" as_ord="1">* </c>
 <c as_id="matching" as_name="Matching 01" as_grp="[1,2]" as_ord="2">* Matching 01: Get the model contour for transforming it later into the image</c>
+<c></c>
+<l>read_shape_model('model.sbm', ModelID)</l>
 <l as_id="matching" as_name="Matching 01" as_grp="[1,2]" as_ord="3">get_shape_model_contours (ModelContours, ModelID, 1)</l>
 <c as_id="matching" as_name="Matching 01" as_grp="[1,5]" as_ord="1">* </c>
 <c as_id="matching" as_name="Matching 01" as_grp="[1,5]" as_ord="2">* Matching 01: Get the reference position</c>
@@ -47,7 +55,7 @@
 <c as_id="matching" as_name="Matching 01" as_grp="[3,1]" as_ord="2">* Matching 01: BEGIN of generated code for model application</c>
 <c as_id="matching" as_name="Matching 01" as_grp="[4]" as_ord="1">* </c>
 <c as_id="matching" as_name="Matching 01" as_grp="[4]" as_ord="2">* Matching 01: Loop over all specified test images</c>
-<l as_id="matching" as_name="Matching 01" as_grp="[4]" as_ord="3">TestImages := ['C:/Users/lenovo/Desktop/4个角/1.bmp','C:/Users/lenovo/Desktop/4个角/2.bmp','C:/Users/lenovo/Desktop/4个角/21.bmp','C:/Users/lenovo/Desktop/4个角/3.bmp','C:/Users/lenovo/Desktop/4个角/4.bmp']</l>
+<l as_id="matching" as_name="Matching 01" as_grp="[4]" as_ord="3">TestImages := ['1.jpg','2.jpg','3.jpg','4.jpg','4.bmp']</l>
 <l as_id="matching" as_name="Matching 01" as_grp="[4]" as_ord="4">for T := 0 to 4 by 1</l>
 <c as_id="matching" as_name="Matching 01" as_grp="[5]" as_ord="1">    * </c>
 <c as_id="matching" as_name="Matching 01" as_grp="[5]" as_ord="2">    * Matching 01: Obtain the test image</c>
@@ -64,11 +72,27 @@
 <l as_id="matching" as_name="Matching 01" as_grp="[7,1]" as_ord="3">    dev_display (Image)</l>
 <l as_id="matching" as_name="Matching 01" as_grp="[7,2]" as_ord="1">    for I := 0 to |Score| - 1 by 1</l>
 <l as_id="matching" as_name="Matching 01" as_grp="[7,3]" as_ord="1">        hom_mat2d_identity (HomMat2D)</l>
+<c>       </c>
 <l as_id="matching" as_name="Matching 01" as_grp="[7,5]" as_ord="1">        hom_mat2d_rotate (HomMat2D, Angle[I], 0, 0, HomMat2D)</l>
 <l as_id="matching" as_name="Matching 01" as_grp="[7,5]" as_ord="2">        hom_mat2d_translate (HomMat2D, Row[I], Column[I], HomMat2D)</l>
 <l as_id="matching" as_name="Matching 01" as_grp="[7,5]" as_ord="3">        affine_trans_contour_xld (ModelContours, TransContours, HomMat2D)</l>
+<l>        union_adjacent_contours_xld(TransContours, UnionContours, 20, 250, 'attr_keep')</l>
+<l>        select_shape_xld (UnionContours, SelectedXLD, 'contlength', 'and', 500, 891.67)</l>
+<c>         </c>
+<c>         </c>
+<l>        area_center_xld(SelectedXLD, Area, Row1, Column1, PointOrder)</l>
+<c>        </c>
+<l>        tuple_max(Column1, Column1_Max)</l>
+<l>        tuple_max(Row1, Row1_Max)</l>
+<l>        tuple_min(Column1, Column1_Min)</l>
+<l>        tuple_min(Row1, Row1_Min)</l>
+<c>        </c>
+<l>        gen_rectangle1(Rectangle, Row1_Min-50, Column1_Min-1000, Row1_Max+50, Column1_Max+1000)</l>
+<l>        gen_rectangle1(Rectangle1, Row1_Min-50, Column1_Min, Row1_Max+50, Column1_Max)</l>
+<c>        </c>
+<c>        </c>
 <l as_id="matching" as_name="Matching 01" as_grp="[7,6]" as_ord="1">        dev_set_color ('green')</l>
-<l as_id="matching" as_name="Matching 01" as_grp="[7,6]" as_ord="2">        dev_display (TransContours)</l>
+<l as_id="matching" as_name="Matching 01" as_grp="[7,6]" as_ord="2">        dev_display (SelectedXLD)</l>
 <l as_id="matching" as_name="Matching 01" as_grp="[7,6]" as_ord="3">        stop ()</l>
 <l as_id="matching" as_name="Matching 01" as_grp="[7,7]" as_ord="1">    endfor</l>
 <c as_id="matching" as_name="Matching 01" as_grp="[8,1]" as_ord="1">    * </c>
